@@ -1,7 +1,6 @@
 "use client";
 
-import { LeadDTO, parseFlags, STATUS_LABELS } from "@/lib/types";
-import { FLAG_LABELS } from "@/lib/health";
+import { LeadDTO, parseFlags, STATUS_LABELS, FLAG_LABELS, SOURCE_LABELS } from "@/lib/types";
 import { getCategory } from "@/lib/categories";
 import ScoreBadge from "./ScoreBadge";
 
@@ -51,14 +50,21 @@ export default function LeadTable({
                     {lead.address ? ` · ${lead.address}` : ""}
                   </div>
                   {lead.website && (
-                    <a
-                      href={lead.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-indigo-400 hover:underline break-all"
-                    >
-                      {lead.website.replace(/^https?:\/\//, "")}
-                    </a>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <a
+                        href={lead.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-indigo-400 hover:underline break-all"
+                      >
+                        {lead.website.replace(/^https?:\/\//, "")}
+                      </a>
+                      {lead.websiteSource && (
+                        <span className="text-[10px] px-1 py-0.5 rounded bg-slate-800 text-slate-400 shrink-0">
+                          {SOURCE_LABELS[lead.websiteSource] ?? lead.websiteSource}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </td>
                 <td className="px-4 py-3">

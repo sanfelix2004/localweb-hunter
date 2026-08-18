@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCategory } from "@/lib/categories";
 import { geocode, searchBusinesses } from "@/lib/overpass";
+import { enrichMissingWebsites } from "@/lib/websiteDiscovery";
 
 export const maxDuration = 120;
 
@@ -23,6 +24,28 @@ export async function POST(req: NextRequest) {
 
     const center = await geocode(location);
     const businesses = await searchBusinesses(center, radiusMeters, category);
+
+    const missingIdx = businesses
+      .map((b, i) => ({ b, i }))
+      .filter(({ b }) => !b.website);
+    const hits = await enrichMissingWebsites(
+      missingIdx.map(({ b }) => ({
+        name: b.name,
+        address: b.address,
+        city: b.city ?? location,
+        lat: b.lat,
+        lon: b.lon,
+        wikidataId: b.wikidataId,
+        osmWebsite: b.website,
+      })),
+      4
+    );
+    hits.forEach((hit, n) => {
+      if (!hit) return;
+      const biz = businesses[missingIdx[n].i];
+      biz.website = hit.url;
+      biz.websiteSource = hit.source;
+    });
 
     const scan = await prisma.scan.create({
       data: {
@@ -45,6 +68,7 @@ export async function POST(req: NextRequest) {
         phone: b.phone ?? null,
         email: b.email ?? null,
         website: b.website ?? null,
+        websiteSource: b.websiteSource ?? null,
         socialLinks: JSON.stringify(b.socialLinks),
         lat: b.lat,
         lon: b.lon,
@@ -53,7 +77,16 @@ export async function POST(req: NextRequest) {
       };
       const existing = await prisma.lead.findUnique({ where: { osmId: b.osmId } });
       if (existing) {
-        await prisma.lead.update({ where: { osmId: b.osmId }, data });
+        const websiteJustFound = !!data.website && !existing.website;
+        await prisma.lead.update({
+          where: { osmId: b.osmId },
+          data: {
+            ...data,
+            ...(websiteJustFound
+              ? { healthScore: null, healthFlags: null, healthDetail: null, analyzedAt: null }
+              : {}),
+          },
+        });
         updated++;
       } else {
         await prisma.lead.create({ data: { ...data, osmId: b.osmId } });

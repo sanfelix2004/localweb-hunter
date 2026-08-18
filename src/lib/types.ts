@@ -1,5 +1,36 @@
-// DTO condivisi tra API e frontend.
-import type { HealthFlag } from "./health";
+// DTO e costanti condivisi tra API e frontend (nessun import server-only).
+
+export type HealthFlag =
+  | "NO_WEBSITE"
+  | "SITE_UNREACHABLE"
+  | "NO_SSL"
+  | "NOT_MOBILE_FRIENDLY"
+  | "SLOW_LOADING"
+  | "VERY_SLOW_LOADING"
+  | "DEPRECATED_TECH"
+  | "TABLE_LAYOUT"
+  | "OUTDATED_COPYRIGHT"
+  | "OBSOLETE_GENERATOR"
+  | "POOR_SEO_META"
+  | "NO_MODERN_MARKUP"
+  | "LOW_PAGESPEED";
+
+/** Etichette italiane per la UI. */
+export const FLAG_LABELS: Record<HealthFlag, string> = {
+  NO_WEBSITE: "Nessun sito",
+  SITE_UNREACHABLE: "Sito irraggiungibile",
+  NO_SSL: "No HTTPS",
+  NOT_MOBILE_FRIENDLY: "Non mobile-friendly",
+  SLOW_LOADING: "Lento",
+  VERY_SLOW_LOADING: "Molto lento",
+  DEPRECATED_TECH: "Tecnologie deprecate",
+  TABLE_LAYOUT: "Layout a tabelle",
+  OUTDATED_COPYRIGHT: "Copyright vecchio",
+  OBSOLETE_GENERATOR: "Software obsoleto",
+  POOR_SEO_META: "SEO carente",
+  NO_MODERN_MARKUP: "Markup datato",
+  LOW_PAGESPEED: "PageSpeed basso",
+};
 
 export interface LeadDTO {
   id: string;
@@ -10,6 +41,7 @@ export interface LeadDTO {
   phone: string | null;
   email: string | null;
   website: string | null;
+  websiteSource: string | null;
   socialLinks: string | null;
   lat: number | null;
   lon: number | null;
@@ -57,4 +89,13 @@ export const STATUS_LABELS: Record<string, string> = {
   CONTACTED: "Contattato",
   WON: "Cliente",
   DISCARDED: "Scartato",
+};
+
+export const SOURCE_LABELS: Record<string, string> = {
+  osm: "OSM",
+  wikidata: "Wikidata",
+  google_places: "Google",
+  nominatim: "OSM+",
+  web_search: "Ricerca web",
+  domain_guess: "Dominio",
 };

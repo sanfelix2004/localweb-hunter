@@ -3,10 +3,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { analyzeWebsite, noWebsiteResult } from "@/lib/health";
+import { findOfficialWebsite } from "@/lib/websiteDiscovery";
 
 export const maxDuration = 300;
 
-const CONCURRENCY = 5;
+const CONCURRENCY = 3;
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
@@ -30,17 +31,38 @@ export async function POST(req: NextRequest) {
     while (queue.length) {
       const lead = queue.shift();
       if (!lead) break;
-      const result = lead.website
-        ? await analyzeWebsite(lead.website).catch(() => noWebsiteResult())
+
+      let website = lead.website;
+      let websiteSource = lead.websiteSource;
+      if (!website) {
+        const hit = await findOfficialWebsite({
+          name: lead.name,
+          address: lead.address ?? undefined,
+          city: lead.address?.split(",").pop()?.trim(),
+          lat: lead.lat ?? undefined,
+          lon: lead.lon ?? undefined,
+        }).catch(() => null);
+        if (hit) {
+          website = hit.url;
+          websiteSource = hit.source;
+        }
+      }
+
+      const result = website
+        ? await analyzeWebsite(website).catch(() => noWebsiteResult())
         : noWebsiteResult();
 
       await prisma.lead.update({
         where: { id: lead.id },
         data: {
+          website,
+          websiteSource,
+          hasWebsite: !!website && !result.flags.includes("NO_WEBSITE"),
           healthScore: result.score,
           healthFlags: JSON.stringify(result.flags),
           healthDetail: JSON.stringify({
             ...result.detail,
+            websiteSource,
             issuesHuman: result.issuesHuman,
           }),
           status: lead.status === "NEW" ? "ANALYZED" : lead.status,

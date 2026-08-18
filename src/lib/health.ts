@@ -3,21 +3,9 @@
 // Un lead senza sito riceve score 0 e flag NO_WEBSITE.
 
 import * as cheerio from "cheerio";
+import type { HealthFlag } from "./types";
 
-export type HealthFlag =
-  | "NO_WEBSITE"
-  | "SITE_UNREACHABLE"
-  | "NO_SSL"
-  | "NOT_MOBILE_FRIENDLY"
-  | "SLOW_LOADING"
-  | "VERY_SLOW_LOADING"
-  | "DEPRECATED_TECH"
-  | "TABLE_LAYOUT"
-  | "OUTDATED_COPYRIGHT"
-  | "OBSOLETE_GENERATOR"
-  | "POOR_SEO_META"
-  | "NO_MODERN_MARKUP"
-  | "LOW_PAGESPEED";
+export type { HealthFlag };
 
 export interface HealthDetail {
   finalUrl?: string;
@@ -242,20 +230,3 @@ export async function analyzeWebsite(rawUrl: string): Promise<HealthResult> {
     issuesHuman: issues,
   };
 }
-
-/** Etichette italiane per la UI. */
-export const FLAG_LABELS: Record<HealthFlag, string> = {
-  NO_WEBSITE: "Nessun sito",
-  SITE_UNREACHABLE: "Sito irraggiungibile",
-  NO_SSL: "No HTTPS",
-  NOT_MOBILE_FRIENDLY: "Non mobile-friendly",
-  SLOW_LOADING: "Lento",
-  VERY_SLOW_LOADING: "Molto lento",
-  DEPRECATED_TECH: "Tecnologie deprecate",
-  TABLE_LAYOUT: "Layout a tabelle",
-  OUTDATED_COPYRIGHT: "Copyright vecchio",
-  OBSOLETE_GENERATOR: "Software obsoleto",
-  POOR_SEO_META: "SEO carente",
-  NO_MODERN_MARKUP: "Markup datato",
-  LOW_PAGESPEED: "PageSpeed basso",
-};

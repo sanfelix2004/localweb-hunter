@@ -2,6 +2,7 @@
 // Entrambe le API sono gratuite e non richiedono chiavi.
 
 import { CategoryDef } from "./categories";
+import { normalizeWebsite } from "./websiteDiscovery";
 
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search";
 const OVERPASS_URL =
@@ -20,9 +21,12 @@ export interface DiscoveredBusiness {
   lat: number;
   lon: number;
   address?: string;
+  city?: string;
   phone?: string;
   email?: string;
   website?: string;
+  websiteSource?: string;
+  wikidataId?: string;
   socialLinks: Record<string, string>;
 }
 
@@ -105,10 +109,11 @@ export async function searchBusinesses(
     const lon = el.lon ?? el.center?.lon;
     if (lat == null || lon == null) continue;
 
+    const city = tags["addr:city"] ?? tags["addr:town"] ?? tags["addr:village"];
     const addressParts = [
       [tags["addr:street"], tags["addr:housenumber"]].filter(Boolean).join(" "),
       tags["addr:postcode"],
-      tags["addr:city"],
+      city,
     ].filter(Boolean);
 
     const socialLinks: Record<string, string> = {};
@@ -117,29 +122,28 @@ export async function searchBusinesses(
       if (v) socialLinks[key] = v;
     }
 
+    const osmWebsite = normalizeWebsite(
+      tags.website ??
+        tags["contact:website"] ??
+        tags.url ??
+        tags["contact:url"] ??
+        tags["website:official"]
+    );
+
     businesses.push({
       osmId: `${el.type}/${el.id}`,
       name: tags.name,
       lat,
       lon,
       address: addressParts.length ? addressParts.join(", ") : undefined,
+      city,
       phone: tags.phone ?? tags["contact:phone"] ?? tags["contact:mobile"],
       email: tags.email ?? tags["contact:email"],
-      website: normalizeWebsite(tags.website ?? tags["contact:website"]),
+      website: osmWebsite,
+      websiteSource: osmWebsite ? "osm" : undefined,
+      wikidataId: tags.wikidata,
       socialLinks,
     });
   }
   return businesses;
-}
-
-function normalizeWebsite(url?: string): string | undefined {
-  if (!url) return undefined;
-  const trimmed = url.trim();
-  if (!trimmed) return undefined;
-  // Link Facebook/Instagram messi nel campo website NON contano come sito vero
-  if (/facebook\.com|instagram\.com|wa\.me|whatsapp\.com|linktr\.ee/i.test(trimmed)) {
-    return undefined;
-  }
-  if (!/^https?:\/\//i.test(trimmed)) return `http://${trimmed}`;
-  return trimmed;
 }

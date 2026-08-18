@@ -23,6 +23,7 @@ create table if not exists "Lead" (
   phone          text,
   email          text,
   website        text,
+  "websiteSource" text,
   "socialLinks"  jsonb,
   lat            double precision,
   lon            double precision,

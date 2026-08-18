@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -32,6 +32,7 @@ model Lead {
   phone        String?
   email        String?
   website      String?
+  websiteSource String? // osm | wikidata | google_places | nominatim | web_search | domain_guess
   socialLinks  String? // JSON: { facebook, instagram, ... }
   lat          Float?
   lon          Float?

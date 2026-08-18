@@ -29,7 +29,7 @@ export default function ScanForm({ onScanComplete }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Errore durante la scansione");
 
-      setPhase(`Trovate ${data.found} attività. Analisi siti web in corso…`);
+      setPhase(`Trovate ${data.found} attività. Verifica siti ufficiali e analisi in corso…`);
       const anRes = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
