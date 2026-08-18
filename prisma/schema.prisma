@@ -1,0 +1,57 @@
+// LocalWeb Hunter — schema database
+// Locale: SQLite (zero-config). Produzione: cambia provider in "postgresql"
+// e punta DATABASE_URL a Supabase (vedi supabase/schema.sql).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Scan {
+  id          String   @id @default(cuid())
+  query       String // input utente: città, CAP o coordinate
+  category    String
+  lat         Float
+  lon         Float
+  radius      Int // metri
+  resultCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  leads       Lead[]
+}
+
+model Lead {
+  id           String    @id @default(cuid())
+  osmId        String?   @unique // id OpenStreetMap per dedup
+  name         String
+  category     String
+  address      String?
+  phone        String?
+  email        String?
+  website      String?
+  socialLinks  String? // JSON: { facebook, instagram, ... }
+  lat          Float?
+  lon          Float?
+  hasWebsite   Boolean   @default(false)
+  // Website Health Score 0-100 (basso = sito pessimo = lead prioritario).
+  // null = non ancora analizzato. I lead NO_WEBSITE hanno score 0.
+  healthScore  Int?
+  healthFlags  String? // JSON: array di flag es. ["NO_SSL","NOT_MOBILE_FRIENDLY"]
+  healthDetail String? // JSON: dettaglio completo dell'analisi
+  status       String    @default("NEW") // NEW | ANALYZED | CONTACTED | WON | DISCARDED
+  pitchEmail   String? // ultimo pitch email generato
+  pitchWhatsapp String? // ultimo pitch WhatsApp generato
+  analyzedAt   DateTime?
+  contactedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  scanId       String?
+  scan         Scan?     @relation(fields: [scanId], references: [id])
+
+  @@index([healthScore])
+  @@index([category])
+  @@index([status])
+}

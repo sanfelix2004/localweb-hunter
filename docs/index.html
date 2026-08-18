@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LocalWeb Hunter — Trova PMI senza sito web</title>
+  <meta name="description" content="Scansiona il territorio, qualifica i lead con un Health Score 0-100 e contattali in 1 click." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #05070d;
+      --card: #0c1220;
+      --line: #1c2a44;
+      --text: #e8eefc;
+      --muted: #8aa0c4;
+      --red: #fb7185;
+      --amber: #fbbf24;
+      --green: #34d399;
+      --accent: #38bdf8;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; background: var(--bg); color: var(--text); font-family: "Instrument Sans", system-ui, sans-serif; }
+    a { color: inherit; }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 20px 80px; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .logo { font-weight: 700; letter-spacing: -0.03em; font-size: 1.15rem; }
+    .logo span { color: var(--accent); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: #111827; color: var(--text); padding: 10px 14px; border-radius: 12px; text-decoration: none; font-weight: 600; }
+    .btn.primary { background: linear-gradient(180deg, #22d3ee, #0284c7); color: #041018; border: 0; }
+    .hero { margin-top: 48px; display: grid; grid-template-columns: 1.1fr .9fr; gap: 28px; }
+    h1 { font-size: clamp(2.1rem, 5vw, 3.5rem); line-height: 1.05; letter-spacing: -0.04em; margin: 0 0 16px; }
+    .lede { color: var(--muted); font-size: 1.08rem; max-width: 54ch; }
+    .bento { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .card { background: linear-gradient(180deg, #121a2c, #0b1220); border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
+    .k { font-family: "IBM Plex Mono", monospace; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }
+    .v { font-size: 1.7rem; font-weight: 700; margin-top: 8px; }
+    .pins { display: flex; gap: 10px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+    .dot { width: 10px; height: 10px; border-radius: 99px; display: inline-block; }
+    table { width: 100%; border-collapse: collapse; margin-top: 32px; background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; }
+    th, td { text-align: left; padding: 12px 14px; font-size: 14px; border-bottom: 1px solid var(--line); }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+    .badge { padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+    .no { background: #3f1219; color: var(--red); }
+    .crit { background: #3b2a08; color: var(--amber); }
+    .ok { background: #083428; color: var(--green); }
+    footer { margin-top: 40px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 800px) { .hero, .bento { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">LocalWeb <span>Hunter</span></div>
+      <a class="btn primary" href="https://github.com/sanfelix2004/localweb-hunter">Codice su GitHub</a>
+    </header>
+
+    <section class="hero">
+      <div>
+        <h1>Trova i buchi digitali del tuo quartiere e chiudi lead in un click.</h1>
+        <p class="lede">Scansiona attività locali via OpenStreetMap, calcola un Website Health Score 0–100 e genera pitch email/WhatsApp pronti da inviare. Pensato per agenzie web e freelance B2B.</p>
+        <p style="margin-top:22px; display:flex; gap:10px; flex-wrap:wrap;">
+          <a class="btn primary" href="https://github.com/sanfelix2004/localweb-hunter#readme">Apri il README</a>
+          <a class="btn" href="https://github.com/sanfelix2004/localweb-hunter/blob/main/.env.example">Configura le API</a>
+        </p>
+      </div>
+      <div class="bento">
+        <div class="card"><div class="k">Lead senza sito</div><div class="v">41%</div></div>
+        <div class="card"><div class="k">Siti critici</div><div class="v">33%</div></div>
+        <div class="card"><div class="k">Health Score medio</div><div class="v">38/100</div></div>
+        <div class="card">
+          <div class="k">Mappa radar</div>
+          <div class="pins">
+            <span><i class="dot" style="background:var(--red)"></i> Nessun sito</span>
+            <span><i class="dot" style="background:var(--amber)"></i> Critico</span>
+            <span><i class="dot" style="background:var(--green)"></i> Solido</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <table>
+      <thead>
+        <tr><th>Attività</th><th>Categoria</th><th>Stato digitale</th><th>Score</th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <footer>Demo pubblica su GitHub Pages. Per la scansione live avvia l’app Next.js in locale o su Vercel (serve un runtime Node, Pages è solo statico).</footer>
+  </div>
+  <script>
+    const leads = [
+      ["Trattoria Da Enzo", "Ristoranti", "Nessun sito", 0, "no"],
+      ["Studio Dentistico Bianchi", "Dentisti", "Sito critico", 22, "crit"],
+      ["Idraulica Roma Est", "Idraulici", "Nessun sito", 0, "no"],
+      ["Parrucchieri Luna", "Bellezza", "Sito critico", 31, "crit"],
+      ["Pizzeria Vesuvio", "Ristoranti", "Presenza solida", 78, "ok"],
+      ["Farmacia San Lorenzo", "Sanità", "Sito critico", 44, "crit"]
+    ];
+    document.getElementById("rows").innerHTML = leads.map(([n,c,s,sc,cls]) =>
+      `<tr><td>${n}</td><td>${c}</td><td><span class="badge ${cls}">${s}</span></td><td>${sc}</td></tr>`
+    ).join("");
+  </script>
+</body>
+</html>
