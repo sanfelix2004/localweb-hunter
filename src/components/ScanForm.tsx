@@ -2,25 +2,35 @@
 
 import { useState } from "react";
 import { CATEGORIES } from "@/lib/categories";
+import { Icons } from "./Icons";
 
 interface Props {
   onScanComplete: (summary: string) => void;
+  onError: (message: string) => void;
 }
 
-export default function ScanForm({ onScanComplete }: Props) {
+const PHASES = [
+  "Geocoding della zona",
+  "Discovery OpenStreetMap",
+  "Arricchimento siti ufficiali",
+  "Analisi Health Score",
+];
+
+export default function ScanForm({ onScanComplete, onError }: Props) {
   const [location, setLocation] = useState("");
   const [categoryId, setCategoryId] = useState(CATEGORIES[0].id);
   const [radius, setRadius] = useState(3000);
   const [loading, setLoading] = useState(false);
-  const [phase, setPhase] = useState("");
+  const [phase, setPhase] = useState(0);
   const [error, setError] = useState("");
 
   async function handleScan(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
+    setPhase(0);
     try {
-      setPhase("Ricerca attività in corso…");
+      setPhase(1);
       const res = await fetch("/api/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -29,7 +39,8 @@ export default function ScanForm({ onScanComplete }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Errore durante la scansione");
 
-      setPhase(`Trovate ${data.found} attività. Verifica siti ufficiali e analisi in corso…`);
+      setPhase(2);
+      setPhase(3);
       const anRes = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -38,43 +49,54 @@ export default function ScanForm({ onScanComplete }: Props) {
       const anData = await anRes.json();
 
       onScanComplete(
-        `${data.found} attività trovate (${data.noWebsite} senza sito) · ${anData.analyzed ?? 0} siti analizzati`
+        `${data.found} attività · ${data.noWebsite} senza sito · ${anData.analyzed ?? 0} analizzati`
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Errore sconosciuto");
+      const message = err instanceof Error ? err.message : "Errore sconosciuto";
+      setError(message);
+      onError(message);
     } finally {
       setLoading(false);
-      setPhase("");
+      setPhase(0);
     }
   }
 
   return (
-    <form
-      onSubmit={handleScan}
-      className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col gap-4"
-    >
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto_auto] gap-3 items-end">
+    <form onSubmit={handleScan} className="glass rounded-2xl p-4 md:p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="kicker">Nuova caccia</p>
+          <h2 className="font-display text-lg font-semibold text-white mt-1">
+            Scansiona una zona
+          </h2>
+        </div>
+        <span className="hidden sm:inline text-[11px] font-mono text-[var(--faint)]">
+          OSM · Nominatim · live
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-[1.2fr_1fr_auto_auto] gap-3 items-end">
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">
-            Zona (città, CAP o lat,lon)
+          <span className="text-[11px] uppercase tracking-wider text-[var(--faint)]">
+            Zona
           </span>
           <input
             required
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="es. Palermo · 90121 · 38.11,13.36"
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Palermo · 90121 · 38.11, 13.36"
+            className="field"
           />
         </label>
 
         <label className="flex flex-col gap-1.5">
-          <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">
+          <span className="text-[11px] uppercase tracking-wider text-[var(--faint)]">
             Categoria
           </span>
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="field"
           >
             {CATEGORIES.map((c) => (
               <option key={c.id} value={c.id}>
@@ -84,9 +106,9 @@ export default function ScanForm({ onScanComplete }: Props) {
           </select>
         </label>
 
-        <label className="flex flex-col gap-1.5 min-w-36">
-          <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">
-            Raggio: {(radius / 1000).toFixed(1)} km
+        <label className="flex flex-col gap-1.5 min-w-40">
+          <span className="text-[11px] uppercase tracking-wider text-[var(--faint)]">
+            Raggio {(radius / 1000).toFixed(1)} km
           </span>
           <input
             type="range"
@@ -95,23 +117,43 @@ export default function ScanForm({ onScanComplete }: Props) {
             step={500}
             value={radius}
             onChange={(e) => setRadius(Number(e.target.value))}
-            className="accent-indigo-500"
+            className="accent-cyan-400 h-10"
           />
         </label>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium rounded-lg px-6 py-2 text-sm transition-colors"
-        >
-          {loading ? "Scansione…" : "🎯 Caccia Lead"}
+        <button type="submit" disabled={loading} className="btn btn-primary h-11">
+          {loading ? (
+            "Scansione…"
+          ) : (
+            <>
+              <Icons.Crosshair className="w-4 h-4" />
+              Caccia lead
+            </>
+          )}
         </button>
       </div>
 
-      {phase && (
-        <p className="text-sm text-indigo-300 animate-pulse">{phase}</p>
+      {loading && (
+        <ol className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+          {PHASES.map((label, i) => {
+            const active = i <= phase;
+            return (
+              <li
+                key={label}
+                className={`text-[11px] rounded-xl border px-3 py-2 ${
+                  active
+                    ? "border-cyan-400/40 text-cyan-200 bg-cyan-400/8"
+                    : "border-[var(--line)] text-[var(--faint)]"
+                }`}
+              >
+                <span className="font-mono mr-1.5">0{i + 1}</span>
+                {label}
+              </li>
+            );
+          })}
+        </ol>
       )}
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-rose-300 mt-3">{error}</p>}
     </form>
   );
 }

@@ -1,6 +1,10 @@
-# 🎯 LocalWeb Hunter
+# LocalWeb Hunter
+
+Sito pubblico (GitHub Pages): **https://sanfelix2004.github.io/localweb-hunter/**
 
 Web app per **automatizzare la lead generation B2B locale**: trova attività commerciali senza sito web o con siti obsoleti/non responsive, le qualifica con un **Website Health Score (0-100)** e le contatta in 1 click via Email o WhatsApp con pitch generati dall'AI.
+
+> GitHub Pages ospita la landing statica. La dashboard live (scan, score, pitch) è l’app Next.js: avviala in locale o su Vercel.
 
 ## Architettura
 

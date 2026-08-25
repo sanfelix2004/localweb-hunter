@@ -66,6 +66,51 @@ export function parseFlags(lead: LeadDTO): HealthFlag[] {
   }
 }
 
+export interface HealthDetailView {
+  finalUrl?: string;
+  https: boolean;
+  reachable: boolean;
+  loadTimeMs?: number;
+  hasViewport?: boolean;
+  hasFlash?: boolean;
+  hasFrameset?: boolean;
+  tableLayout?: boolean;
+  copyrightYear?: number;
+  generator?: string;
+  hasOgTags?: boolean;
+  hasDescription?: boolean;
+  html5Doctype?: boolean;
+  pagespeedScore?: number;
+  httpStatus?: number;
+  websiteSource?: string;
+  issuesHuman?: string[];
+}
+
+export function parseHealthDetail(lead: LeadDTO): HealthDetailView | null {
+  if (!lead.healthDetail) return null;
+  try {
+    return JSON.parse(lead.healthDetail) as HealthDetailView;
+  } catch {
+    return null;
+  }
+}
+
+export function parseSocial(lead: LeadDTO): Record<string, string> {
+  if (!lead.socialLinks) return {};
+  try {
+    const parsed = JSON.parse(lead.socialLinks) as Record<string, string>;
+    return parsed && typeof parsed === "object" ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Score effettivo in UI: senza sito = 0. */
+export function effectiveScore(lead: LeadDTO): number | null {
+  if (!lead.hasWebsite) return 0;
+  return lead.healthScore;
+}
+
 /** Colore di gravità: score basso = rosso (lead caldo). */
 export function scoreColor(score: number | null): string {
   if (score === null) return "#64748b"; // non analizzato
