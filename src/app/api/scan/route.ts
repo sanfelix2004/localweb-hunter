@@ -5,7 +5,7 @@ import { getCategory } from "@/lib/categories";
 import { geocode, searchBusinesses } from "@/lib/overpass";
 import { enrichMissingWebsites } from "@/lib/websiteDiscovery";
 
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {

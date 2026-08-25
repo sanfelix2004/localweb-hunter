@@ -41,15 +41,21 @@ export default function ScanForm({ onScanComplete, onError }: Props) {
 
       setPhase(2);
       setPhase(3);
-      const anRes = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const anData = await anRes.json();
+      let analyzed = 0;
+      for (let i = 0; i < 20; i++) {
+        const anRes = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        const anData = await anRes.json();
+        const n = anData.analyzed ?? 0;
+        analyzed += n;
+        if (!n) break;
+      }
 
       onScanComplete(
-        `${data.found} attività · ${data.noWebsite} senza sito · ${anData.analyzed ?? 0} analizzati`
+        `${data.found} attività · ${data.noWebsite} senza sito · ${analyzed} analizzati`
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore sconosciuto";

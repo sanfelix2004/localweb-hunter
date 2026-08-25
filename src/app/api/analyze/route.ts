@@ -5,9 +5,10 @@ import { prisma } from "@/lib/db";
 import { analyzeWebsite, noWebsiteResult } from "@/lib/health";
 import { findOfficialWebsite } from "@/lib/websiteDiscovery";
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 const CONCURRENCY = 3;
+const BATCH = 8;
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
     where: leadIds?.length
       ? { id: { in: leadIds } }
       : { healthScore: null },
-    take: 100,
+    take: BATCH,
   });
 
   if (!leads.length) {
