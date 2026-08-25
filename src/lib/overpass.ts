@@ -12,7 +12,7 @@ const OVERPASS_URLS = [
 ].filter(Boolean) as string[];
 
 const USER_AGENT =
-  "LocalWebHunter/1.1 (https://localweb-hunter-live.vercel.app; lead-gen tool)";
+  "LocalWebHunter/1.1 (https://localweb-hunter-app.vercel.app; lead-gen tool)";
 
 export interface GeoPoint {
   lat: number;
