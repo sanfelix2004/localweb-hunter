@@ -1,7 +1,7 @@
 # LocalWeb Hunter
 
 Sito pubblico (GitHub Pages): **https://sanfelix2004.github.io/localweb-hunter/**  
-App live (scansione e dashboard): **https://localweb-hunter.vercel.app/**
+App live (scansione e dashboard): **https://localweb-hunter-live.vercel.app/**
 
 Web app per **automatizzare la lead generation B2B locale**: trova attività commerciali senza sito web o con siti obsoleti/non responsive, le qualifica con un **Website Health Score (0-100)** e le contatta in 1 click via Email o WhatsApp con pitch generati dall'AI.
 
