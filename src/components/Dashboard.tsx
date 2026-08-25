@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { LeadDTO, STATUS_LABELS, effectiveScore } from "@/lib/types";
 import { CATEGORIES } from "@/lib/categories";
+import { mergeLeads, statsFromLeads } from "@/lib/mapLead";
 import ScanForm from "./ScanForm";
 import LeadTable from "./LeadTable";
 import PitchModal from "./PitchModal";
@@ -37,6 +38,26 @@ const EMPTY_STATS: Stats = {
   avgScore: null,
   filtered: 0,
 };
+
+const STORAGE = "lwh-leads-v1";
+
+function readLocal(): LeadDTO[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE);
+    return raw ? (JSON.parse(raw) as LeadDTO[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocal(next: LeadDTO[]) {
+  try {
+    localStorage.setItem(STORAGE, JSON.stringify(next.slice(0, 500)));
+  } catch {
+    /* ignore quota */
+  }
+}
 
 export default function Dashboard() {
   const [leads, setLeads] = useState<LeadDTO[]>([]);
@@ -72,16 +93,28 @@ export default function Dashboard() {
     try {
       const res = await fetch(`/api/leads?${params}`);
       const data = await res.json();
-      setLeads(data.leads ?? []);
-      if (data.stats) setStats(data.stats);
-      if (!res.ok) notify(data.error || "Archivio non raggiungibile", "err");
+      if (res.ok && Array.isArray(data.leads) && data.leads.length) {
+        setLeads(data.leads);
+        writeLocal(data.leads);
+        if (data.stats) setStats(data.stats);
+        return;
+      }
+      const local = readLocal();
+      if (local.length) {
+        setLeads(local);
+        setStats(statsFromLeads(local));
+      }
     } catch {
-      notify("Impossibile caricare i lead", "err");
+      const local = readLocal();
+      if (local.length) {
+        setLeads(local);
+        setStats(statsFromLeads(local));
+      }
     }
-  }, [maxScore, onlyNoWebsite, categoryFilter, statusFilter, notify]);
+  }, [maxScore, onlyNoWebsite, categoryFilter, statusFilter]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- hydrate leads from API
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- fetch archive
     void loadLeads();
   }, [loadLeads]);
 
@@ -111,12 +144,22 @@ export default function Dashboard() {
   async function analyzeLead(lead: LeadDTO) {
     setAnalyzingIds((prev) => new Set(prev).add(lead.id));
     try {
-      await fetch("/api/analyze", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadIds: [lead.id] }),
+        body: JSON.stringify({ leadIds: [lead.id], leads: [lead] }),
       });
-      await loadLeads();
+      const data = await res.json();
+      if (Array.isArray(data.leads) && data.leads.length) {
+        setLeads((prev) => {
+          const next = mergeLeads(prev, data.leads);
+          writeLocal(next);
+          setStats(statsFromLeads(next));
+          return next;
+        });
+      } else {
+        await loadLeads();
+      }
       notify(`Analisi completata: ${lead.name}`);
     } finally {
       setAnalyzingIds((prev) => {
@@ -253,9 +296,17 @@ export default function Dashboard() {
         </div>
 
         <ScanForm
-          onScanComplete={(summary) => {
+          onScanComplete={(summary, scanned) => {
             notify(summary);
-            loadLeads();
+            if (scanned.length) {
+              setLeads((prev) => {
+                const next = mergeLeads(prev, scanned);
+                writeLocal(next);
+                setStats(statsFromLeads(next));
+                return next;
+              });
+            }
+            void loadLeads();
           }}
           onError={(message) => notify(message, "err")}
         />

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { LeadDTO } from "@/lib/types";
 import { CATEGORIES } from "@/lib/categories";
 import { Icons } from "./Icons";
 
 interface Props {
-  onScanComplete: (summary: string) => void;
+  onScanComplete: (summary: string, leads: LeadDTO[]) => void;
   onError: (message: string) => void;
 }
 
@@ -39,23 +40,31 @@ export default function ScanForm({ onScanComplete, onError }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Errore durante la scansione");
 
+      const scanned: LeadDTO[] = data.leads ?? [];
       setPhase(2);
       setPhase(3);
-      let analyzed = 0;
+      let working = [...scanned];
+      const pending = () =>
+        working.filter((l) => l.hasWebsite && l.healthScore === null);
+      let analyzed = working.filter((l) => !l.hasWebsite).length;
       for (let i = 0; i < 20; i++) {
+        const batch = pending().slice(0, 8);
+        if (!batch.length) break;
         const anRes = await fetch("/api/analyze", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
+          body: JSON.stringify({ leads: batch }),
         });
         const anData = await anRes.json();
-        const n = anData.analyzed ?? 0;
-        analyzed += n;
-        if (!n) break;
+        const scored: LeadDTO[] = anData.leads ?? [];
+        analyzed += scored.length;
+        const byId = new Map(scored.map((l) => [l.id, l]));
+        working = working.map((l) => byId.get(l.id) ?? l);
       }
 
       onScanComplete(
-        `${data.found} attività · ${data.noWebsite} senza sito · ${analyzed} analizzati`
+        `${data.found ?? working.length} attività · ${data.noWebsite ?? working.filter((l) => !l.hasWebsite).length} senza sito · ${analyzed} analizzati`,
+        working
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : "Errore sconosciuto";

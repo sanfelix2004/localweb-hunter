@@ -9,18 +9,30 @@ export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
-    const { leadId, channel } = await req.json();
-    if (!leadId || !["email", "whatsapp"].includes(channel)) {
+    const { leadId, channel, lead: payload } = await req.json();
+    if (!["email", "whatsapp"].includes(channel)) {
       return NextResponse.json(
-        { error: "leadId e channel (email|whatsapp) obbligatori" },
+        { error: "channel (email|whatsapp) obbligatorio" },
         { status: 400 }
       );
     }
 
-    const lead = await prisma.lead.findUnique({ where: { id: leadId } });
-    if (!lead) return NextResponse.json({ error: "Lead non trovato" }, { status: 404 });
+    const fromDb = leadId
+      ? await prisma.lead.findUnique({ where: { id: leadId } }).catch(() => null)
+      : null;
+    const lead = fromDb ?? payload;
+    if (!lead) {
+      return NextResponse.json({ error: "Lead non trovato" }, { status: 404 });
+    }
 
-    const detail = lead.healthDetail ? JSON.parse(lead.healthDetail) : {};
+    const detail = (() => {
+      if (!lead.healthDetail) return {};
+      try {
+        return JSON.parse(lead.healthDetail);
+      } catch {
+        return {};
+      }
+    })();
     const issues: string[] = detail.issuesHuman ?? [];
 
     const pitch = await generatePitch({
@@ -37,13 +49,15 @@ export async function POST(req: NextRequest) {
       ? `Oggetto: ${pitch.subject}\n\n${pitch.body}`
       : pitch.body;
 
-    await prisma.lead.update({
-      where: { id: leadId },
-      data:
-        channel === "email"
-          ? { pitchEmail: fullText }
-          : { pitchWhatsapp: pitch.body },
-    });
+    await prisma.lead
+      .update({
+        where: { id: lead.id },
+        data:
+          channel === "email"
+            ? { pitchEmail: fullText }
+            : { pitchWhatsapp: pitch.body },
+      })
+      .catch(() => undefined);
 
     return NextResponse.json({ ...pitch });
   } catch (err) {

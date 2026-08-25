@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getCategory } from "@/lib/categories";
 import { geocode, searchBusinesses } from "@/lib/overpass";
 import { enrichMissingWebsites } from "@/lib/websiteDiscovery";
+import { discoveredToLead } from "@/lib/mapLead";
 
 export const maxDuration = 60;
 
@@ -47,60 +48,69 @@ export async function POST(req: NextRequest) {
       biz.websiteSource = hit.source;
     });
 
-    const scan = await prisma.scan.create({
-      data: {
-        query: location,
-        category: category.id,
-        lat: center.lat,
-        lon: center.lon,
-        radius: radiusMeters,
-        resultCount: businesses.length,
-      },
-    });
-
+    const leads = businesses.map((b) => discoveredToLead(b, category.id));
     let created = 0;
     let updated = 0;
-    for (const b of businesses) {
-      const data = {
-        name: b.name,
-        category: category.id,
-        address: b.address ?? null,
-        phone: b.phone ?? null,
-        email: b.email ?? null,
-        website: b.website ?? null,
-        websiteSource: b.websiteSource ?? null,
-        socialLinks: JSON.stringify(b.socialLinks),
-        lat: b.lat,
-        lon: b.lon,
-        hasWebsite: !!b.website,
-        scanId: scan.id,
-      };
-      const existing = await prisma.lead.findUnique({ where: { osmId: b.osmId } });
-      if (existing) {
-        const websiteJustFound = !!data.website && !existing.website;
-        await prisma.lead.update({
-          where: { osmId: b.osmId },
-          data: {
-            ...data,
-            ...(websiteJustFound
-              ? { healthScore: null, healthFlags: null, healthDetail: null, analyzedAt: null }
-              : {}),
-          },
-        });
-        updated++;
-      } else {
-        await prisma.lead.create({ data: { ...data, osmId: b.osmId } });
-        created++;
+    let persisted = false;
+
+    try {
+      const scan = await prisma.scan.create({
+        data: {
+          query: location,
+          category: category.id,
+          lat: center.lat,
+          lon: center.lon,
+          radius: radiusMeters,
+          resultCount: businesses.length,
+        },
+      });
+
+      for (const b of businesses) {
+        const data = {
+          name: b.name,
+          category: category.id,
+          address: b.address ?? null,
+          phone: b.phone ?? null,
+          email: b.email ?? null,
+          website: b.website ?? null,
+          websiteSource: b.websiteSource ?? null,
+          socialLinks: JSON.stringify(b.socialLinks),
+          lat: b.lat,
+          lon: b.lon,
+          hasWebsite: !!b.website,
+          scanId: scan.id,
+        };
+        const existing = await prisma.lead.findUnique({ where: { osmId: b.osmId } });
+        if (existing) {
+          const websiteJustFound = !!data.website && !existing.website;
+          await prisma.lead.update({
+            where: { osmId: b.osmId },
+            data: {
+              ...data,
+              ...(websiteJustFound
+                ? { healthScore: null, healthFlags: null, healthDetail: null, analyzedAt: null }
+                : {}),
+            },
+          });
+          updated++;
+        } else {
+          await prisma.lead.create({ data: { ...data, osmId: b.osmId } });
+          created++;
+        }
       }
+      persisted = true;
+    } catch {
+      created = leads.filter((l) => l.status === "NEW" || l.status === "ANALYZED").length;
     }
 
     return NextResponse.json({
-      scanId: scan.id,
-      center,
       found: businesses.length,
       created,
       updated,
+      persisted,
       noWebsite: businesses.filter((b) => !b.website).length,
+      center,
+      leads,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Errore sconosciuto";

@@ -31,7 +31,7 @@ export default function PitchModal({ lead, onClose, onContacted }: Props) {
       const res = await fetch("/api/pitch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ leadId: lead.id, channel: ch }),
+        body: JSON.stringify({ leadId: lead.id, lead, channel: ch }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
